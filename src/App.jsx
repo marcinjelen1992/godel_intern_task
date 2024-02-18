@@ -3,59 +3,10 @@ import { useState, useEffect, useRef } from "react";
 import "./App.css";
 
 function App() {
-  const [count, setCount] = useState(0);
-  const [audioFile, setAudioFile] = useState();
-
-  // const handleClick = () => {
-  //   if (buttonName === "Play") {
-  //    a.play();
-  //     setButtonName("Pause");
-  //   } else {
-  //     a.pause();
-  //     setButtonName("Play");
-  //   }
-  // };
-
-  const initialArrayFirstRow = [
-    { id: 1, isOn: false },
-    { id: 2, isOn: false },
-    { id: 3, isOn: false },
-    { id: 4, isOn: false },
-    { id: 5, isOn: false },
-    { id: 6, isOn: false },
-    { id: 7, isOn: false },
-    { id: 8, isOn: false },
-    { id: 9, isOn: false },
-    { id: 10, isOn: false },
-    { id: 11, isOn: false },
-    { id: 12, isOn: false },
-    { id: 13, isOn: false },
-    { id: 14, isOn: false },
-    { id: 15, isOn: false },
-    { id: 16, isOn: false },
-    { id: 17, isOn: false },
-    { id: 18, isOn: false },
-    { id: 19, isOn: false },
-    { id: 20, isOn: false },
-  ];
-
-  const [itemsArrayFirstRow, setArrayFirstRow] = useState(initialArrayFirstRow);
-
-  //const handleMoleRandomisation = (number1, number2, number3) => {
-  //  setArrayFirstRow(
-  //   itemsArrayFirstRow.map((element) => {
-  //      if (
-  //        element.id === number1 ||
-  //        element.id === number2 ||
-  //        element.id === number3
-  //      ) {
-  //        return { ...element, isMolePresent: true };
-  //      } else {
-  //        return { ...element, isMolePresent: false };
-  //      }
-  //    })
-  //  );
-  // };
+  const canvasRef1 = useRef(null);
+  const canvasRef2 = useRef(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [audioFile, setAudioFile] = useState(null);
 
   const addFile = (e) => {
     if (e.target.files[0]) {
@@ -63,51 +14,119 @@ function App() {
     }
   };
 
-  const audioRef = useRef();
+  useEffect(() => {
+    const audioContext = new AudioContext();
+    const analyser = audioContext.createAnalyser();
+    const audioSrc = audioContext.createMediaElementSource(
+      document.getElementById("audioElement")
+    );
+    audioSrc.connect(analyser);
+    analyser.connect(audioContext.destination);
 
-  const handleAudioPlay = () => {
-    let audioContext = new AudioContext();
-    if (!source.current) {
-      source.current = audioContext.createMediaElementSource(audioRef.current);
-      analyzer.current = audioContext.createAnalyzer();
-      source.current.connect(analyzer.current);
-      analyzer.current.connect(audioContext.destination);
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray1 = new Uint8Array(bufferLength);
+    const dataArray2 = new Uint8Array(bufferLength);
+
+    const draw1 = () => {
+      const canvas = canvasRef1.current;
+      const canvasCtx = canvas.getContext("2d");
+
+      const WIDTH = canvas.width;
+      const HEIGHT = canvas.height;
+
+      analyser.getByteTimeDomainData(dataArray1);
+
+      canvasCtx.fillStyle = "rgb(0, 0, 0)";
+      canvasCtx.fillRect(0, 0, WIDTH, HEIGHT);
+
+      canvasCtx.lineWidth = 2;
+      canvasCtx.strokeStyle = "rgb(0, 255, 0)";
+
+      canvasCtx.beginPath();
+
+      const sliceWidth = (WIDTH * 1.0) / bufferLength;
+      let x = 0;
+
+      for (let i = 0; i < bufferLength; i++) {
+        const v = dataArray1[i] / 128.0;
+        const y = (v * HEIGHT) / 2;
+
+        if (i === 0) {
+          canvasCtx.moveTo(x, y);
+        } else {
+          canvasCtx.lineTo(x, y);
+        }
+
+        x += sliceWidth;
+      }
+
+      canvasCtx.lineTo(canvas.width, canvas.height / 2);
+      canvasCtx.stroke();
+
+      requestAnimationFrame(draw1);
+    };
+
+    const draw2 = () => {
+      const canvas = canvasRef2.current;
+      const canvasCtx = canvas.getContext("2d");
+
+      analyser.getByteFrequencyData(dataArray2);
+
+      const WIDTH = canvas.width;
+      const HEIGHT = canvas.height;
+      const barWidth = WIDTH / 5;
+      let barHeight;
+      let x = 0;
+
+      canvasCtx.clearRect(0, 0, WIDTH, HEIGHT);
+
+      for (let i = 0; i < 5; i++) {
+        for (let j = 0; j < 5; j++) {
+          barHeight = dataArray2[i * 5 + j] / 2;
+
+          const hue = (i * 5 + j) * 10;
+          canvasCtx.fillStyle = `hsl(${hue}, 100%, 50%)`;
+          canvasCtx.fillRect(x, HEIGHT - barHeight, barWidth, barHeight);
+
+          x += barWidth;
+        }
+        x = i * barWidth;
+      }
+
+      requestAnimationFrame(draw2);
+    };
+
+    if (isPlaying) {
+      draw1();
+      draw2();
     }
-    visualizeData();
+
+    return () => {
+      analyser.disconnect();
+    };
+  }, [isPlaying, audioFile]);
+
+  const togglePlay = () => {
+    const audioElement = document.getElementById("audioElement");
+
+    if (!isPlaying) {
+      audioElement.play();
+    } else {
+      audioElement.pause();
+    }
+
+    setIsPlaying(!isPlaying);
   };
 
   return (
     <>
-      <h1>Music Player</h1>
-      <div className="card">
-        <div className="div-of-boxes-row">
-          {itemsArrayFirstRow.map((element) => {
-            const isFieldHighlighted = () => {
-              if (element.isOn === true) {
-                return "screen-two-box-correct ";
-              } else {
-                return "screen-two-box-incorrect ";
-              }
-            };
-
-            return (
-              <div
-                id={element.id}
-                className={isFieldHighlighted() + "screen-two-box"}
-              ></div>
-            );
-          })}
-        </div>
-        <div className="audio-controls">
-          <audio
-            ref={audioRef}
-            onPlay={handleAudioPlay}
-            src={audioFile}
-            controls
-          ></audio>
-          <input type="file" onChange={addFile} />
-        </div>
+      <div className="audio-controls">
+        <audio id="audioElement" src={audioFile} />
+        <button onClick={togglePlay}>{isPlaying ? "Pause" : "Play"}</button>
+        <input type="file" onChange={addFile} />
       </div>
+      <canvas ref={canvasRef1} width="500" height="200"></canvas>
+      <canvas ref={canvasRef2} width="500" height="200"></canvas>
     </>
   );
 }
