@@ -43,9 +43,10 @@
 
 .div-of-boxes-row {
   display: flex;
+  flex-direction: column-reverse;
   gap: 8px;
   flex-wrap: wrap;
-  width: 532px
+  height: 500px
 }
 
 .screen-two-box {
