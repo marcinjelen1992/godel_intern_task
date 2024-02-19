@@ -189,23 +189,21 @@ function App() {
 
       const WIDTH = canvas.width;
       const HEIGHT = canvas.height;
-      const barWidth = WIDTH / 5;
+      const barWidth = (WIDTH / bufferLength) * 2.5;
       let barHeight;
       let x = 0;
 
-      canvasCtx.clearRect(0, 0, WIDTH, HEIGHT);
+      canvasCtx.fillStyle = "#000";
+      canvasCtx.fillRect(0, 0, WIDTH, HEIGHT);
 
-      for (let i = 0; i < 5; i++) {
-        for (let j = 0; j < 5; j++) {
-          barHeight = dataArray2[i * 5 + j] / 2;
+      for (let i = 0; i < bufferLength; i++) {
+        barHeight = dataArray2[i];
 
-          const hue = (i * 5 + j) * 10;
-          canvasCtx.fillStyle = `hsl(${hue}, 100%, 50%)`;
-          canvasCtx.fillRect(x, HEIGHT - barHeight, barWidth, barHeight);
+        const hue = (i / bufferLength) * 360;
+        canvasCtx.fillStyle = "hsl(" + hue + ", 100%, 50%)";
+        canvasCtx.fillRect(x, HEIGHT - barHeight, barWidth, barHeight);
 
-          x += barWidth;
-        }
-        x = i * barWidth;
+        x += barWidth + 1;
       }
 
       requestAnimationFrame(draw2);
@@ -305,7 +303,7 @@ function App() {
         <input type="file" onChange={addFile} />
       </div>
       <canvas ref={canvasRef1} width="500" height="200"></canvas>
-      <canvas ref={canvasRef2} width="500" height="200"></canvas>
+      <canvas ref={canvasRef2} width="500" height="500"></canvas>
     </>
   );
 }
